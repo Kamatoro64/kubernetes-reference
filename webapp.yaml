@@ -1,0 +1,63 @@
+# Common to have Deployment and Service in the same file
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp-deployment
+  labels:
+    app: webapp # Optional for deployments etc. Mandatory for pods
+spec: # Deployment specific specification
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webapp # How does K8 know which pod replicas belong to this deployment?
+  template: # Blueprint for pods within a deployment. Has own metadata and spec
+    metadata:
+      labels:
+        app: webapp # Mandatory for pods. Match matchLabels in Deployment spec
+    spec:
+      containers: # Definiton of container(s) within the pod
+      - name: webapp
+        image: nanajanashia/k8s-demo-app:v1.0 # ImageName:Tag
+        ports:
+        - containerPort: 3000 # Nodejs application that listen on port 3000
+        env:
+        - name: USER_NAME # Variable name defined in nana's web application 
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-user
+        - name: USER_PWD # Variable name defined in nana's web application 
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-password
+        - name: DB_URL # Variable name defined in nana's web application 
+          valueFrom:
+            configMapKeyRef:
+              name: mongo-config
+              key: mongo-url
+
+# Each pod will get a unique name but can share a common label! 
+# Therefore we can identify the pod replicas of a deployment using a label
+# labels can be anything but using the app key is standard
+
+--- 
+
+# New yaml block for Service
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp-service
+spec:
+  type: NodePort # External Service Type > Requires nodePort to be defined. Default is ClusterIP, an internal service type
+  selector:
+    app: webapp # Label of pods. Use the selector to specify what pods belong to this service 
+  ports:
+    - protocol: TCP
+      port: 3000 # Service port can be anything but good practice to keep them the same as targetPort
+      targetPort: 3000 # Port of the pods. Should match the container port
+      nodePort: 30100 # 30000 - 32767 #<NodeIP>:<NodePort>
+
+# Request hits port 8080 of webapp Service. Forwards it to pod which listens on port 27017, which is the containerPort
+# https://minikube.sigs.k8s.io/docs/handbook/accessing/

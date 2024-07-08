@@ -1,0 +1,21 @@
+kubectl --help
+
+kubectl config get-contexts
+kubectl config current-context
+kubectl config use-context another-cluster
+
+kubectl apply -f mongo-config.yaml
+kubectl apply -f mongo-secret.yaml
+kubectl apply -f mongo.yaml
+kubectl apply -f webapp.yaml
+
+kubectl get all
+kubectl get pod
+kubectl get deployments
+kubectl get node
+kubectl get node -o wide
+kubectl get configmap
+kubectl get secret
+
+kubectl describe  deployment mongo-deployment
+kubectl describe service webapp-service

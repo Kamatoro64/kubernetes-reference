@@ -1,0 +1,55 @@
+# Common to have Deployment and Service in the same file
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-deployment
+  labels:
+    app: mongo # Optional for deployments etc. Mandatory for pods
+spec: # Deployment specific specification
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo # How does K8 know which pod replicas belong to this deployment?
+  template: # Blueprint for pods within a deployment. Has own metadata and spec
+    metadata:
+      labels:
+        app: mongo # Mandatory for pods. Match matchLabels in Deployment spec
+    spec:
+      containers: # Definiton of container(s) within the pod
+      - name: mongodb
+        image: mongo:5.0 # ImageName:Tag
+        ports:
+        - containerPort: 27017 # From image documentation
+        env: # Passing environment variables during initialisation
+        - name: MONGO_INITDB_ROOT_USERNAME # From mongo image documentation
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-user
+        - name: MONGO_INITDB_ROOT_PASSWORD # From mongo image documentation
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-password
+
+# Each pod will get a unique name but can share a common label! 
+# Therefore we can identify the pod replicas of a deployment using a label
+# labels can be anything but using the app key is standard
+
+--- 
+
+# New yaml block for Service
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-service
+spec:
+  selector:
+    app: mongo # Label of pods. Use the selector to specify what pods belong to this service 
+  ports:
+    - protocol: TCP
+      port: 27017 # Service port can be anything but good practice to keep them the same as targetPort
+      targetPort: 27017 # Port of the pods. Should match the container port
+
+# Request hits port 8080 of Mongo Service. Forwards it to pod which listens on port 27017, which is the containerPort
